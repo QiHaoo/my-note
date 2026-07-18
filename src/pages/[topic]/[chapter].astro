@@ -22,7 +22,8 @@ export function getStaticPaths() {
 
 const { topic, chapter } = Astro.props;
 const searchParams = new URL(Astro.request.url).searchParams;
-const view = searchParams.get('view') === 'mindmap' ? 'mindmap' : 'note';
+const defaultView = chapter.hasNote ? 'note' : 'mindmap';
+const view = searchParams.get('view') === 'mindmap' ? 'mindmap' : defaultView;
 const base = import.meta.env.BASE_URL || '';
 
 const noteHref = `/${topic.slug}/${chapter.slug}/`;
