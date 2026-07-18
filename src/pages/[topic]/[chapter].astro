@@ -1,0 +1,69 @@
+---
+import { marked } from 'marked';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ViewToggle from '../../components/ViewToggle.astro';
+import MindmapViewer from '../../components/MindmapViewer.astro';
+import MindmapSVG from '../../components/MindmapSVG.astro';
+import { getTopics } from '../../lib/content';
+
+export function getStaticPaths() {
+  const topics = getTopics();
+  const paths: any[] = [];
+  for (const topic of topics) {
+    for (const chapter of topic.chapters) {
+      paths.push({
+        params: { topic: topic.slug, chapter: chapter.slug },
+        props: { topic, chapter },
+      });
+    }
+  }
+  return paths;
+}
+
+const { topic, chapter } = Astro.props;
+const searchParams = new URL(Astro.request.url).searchParams;
+const view = searchParams.get('view') === 'mindmap' ? 'mindmap' : 'note';
+const base = import.meta.env.BASE_URL || '';
+
+const noteHref = `/${topic.slug}/${chapter.slug}/`;
+const mindmapHref = `/${topic.slug}/${chapter.slug}/?view=mindmap`;
+
+const noteHtml = chapter.note ? marked(chapter.note.rawContent, { gfm: true }) : '';
+---
+
+<BaseLayout title={chapter.title}>
+  <div class="mx-auto max-w-5xl">
+    <div class="mb-6">
+      <div class="text-sm text-[var(--text)]">
+        {topic.meta.title} / {chapter.title}
+      </div>
+      <h1 class="mt-2 text-3xl font-bold text-[var(--heading)]">{chapter.title}</h1>
+      {chapter.note?.frontmatter.tags && (
+        <div class="mt-3 flex flex-wrap gap-2">
+          {chapter.note.frontmatter.tags.map((tag) => (
+            <span class="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs text-[var(--text)]">
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+
+    {chapter.hasNote && chapter.hasMindmap && (
+      <ViewToggle activeView={view} noteHref={noteHref} mindmapHref={mindmapHref} />
+    )}
+
+    {view === 'note' && chapter.note && (
+      <article class="prose prose-invert max-w-none prose-headings:text-[var(--heading)] prose-p:text-[var(--text)] prose-a:text-[var(--accent)] prose-code:text-[var(--accent)]"
+        set:html={noteHtml}
+      />
+    )}
+
+    {view === 'mindmap' && chapter.mindmap && (
+      <div>
+        <MindmapViewer data={chapter.mindmap} />
+        <MindmapSVG data={chapter.mindmap} />
+      </div>
+    )}
+  </div>
+</BaseLayout>

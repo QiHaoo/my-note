@@ -7,4 +7,10 @@ export default defineConfig({
   integrations: [tailwind()],
   site: 'https://qihahoo.github.io',
   base: '/my-note',
+  markdown: {
+    shikiConfig: {
+      theme: 'github-dark',
+      wrap: true,
+    },
+  },
 });

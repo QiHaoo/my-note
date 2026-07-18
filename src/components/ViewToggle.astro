@@ -1,0 +1,25 @@
+---
+interface Props {
+  activeView: 'note' | 'mindmap';
+  noteHref: string;
+  mindmapHref: string;
+}
+
+const { activeView, noteHref, mindmapHref } = Astro.props;
+const base = import.meta.env.BASE_URL || '';
+---
+
+<div class="mb-6 inline-flex rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1">
+  <a
+    href={`${base}${noteHref}`}
+    class={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${activeView === 'note' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text)] hover:text-[var(--heading)]'}`}
+  >
+    笔记
+  </a>
+  <a
+    href={`${base}${mindmapHref}`}
+    class={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${activeView === 'mindmap' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text)] hover:text-[var(--heading)]'}`}
+  >
+    思维导图
+  </a>
+</div>
