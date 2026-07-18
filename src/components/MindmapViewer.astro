@@ -1,0 +1,104 @@
+---
+import type { MindmapData } from '../lib/types';
+
+interface Props {
+  data: MindmapData;
+}
+
+const { data } = Astro.props;
+const dataJson = JSON.stringify(data);
+---
+
+<div class="relative mb-4">
+  <div id="mindmap-canvas" class="h-[500px] w-full overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]" data-mindmap={dataJson}></div>
+</div>
+
+<script>
+  import { hierarchy, tree, zoom, select, linkHorizontal, zoomIdentity } from 'd3';
+
+  (function () {
+    const container = document.getElementById('mindmap-canvas');
+    if (!container) return;
+
+    const data = JSON.parse(container.dataset.mindmap || '{}');
+    if (!data.root) return;
+
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    const svg = select(container)
+      .append('svg')
+      .attr('width', width)
+      .attr('height', height)
+      .attr('viewBox', [0, 0, width, height]);
+
+    const g = svg.append('g').attr('transform', `translate(${width * 0.15},${height * 0.5})`);
+
+    const zoomBehavior = zoom()
+      .scaleExtent([0.3, 3])
+      .on('zoom', (event) => {
+        g.attr('transform', event.transform);
+      });
+
+    svg.call(zoomBehavior);
+
+    const root = hierarchy(data.root, (d) => d.children);
+    const treeLayout = tree().size([height * 0.8, width * 0.65]);
+    treeLayout(root);
+
+    const linkGen = linkHorizontal()
+      .x((d) => d.y)
+      .y((d) => d.x);
+
+    g.selectAll('path.link')
+      .data(root.links())
+      .enter()
+      .append('path')
+      .attr('class', 'link')
+      .attr('fill', 'none')
+      .attr('stroke', 'var(--text)')
+      .attr('stroke-opacity', 0.3)
+      .attr('stroke-width', 1.5)
+      .attr('d', (d) => linkGen(d));
+
+    const nodes = g
+      .selectAll('g.node')
+      .data(root.descendants())
+      .enter()
+      .append('g')
+      .attr('class', 'node')
+      .attr('transform', (d) => `translate(${d.y},${d.x})`)
+      .style('cursor', 'pointer')
+      .on('click', (_event, d) => {
+        if (d.data.noteRef) {
+          window.location.href = d.data.noteRef;
+        }
+      });
+
+    nodes
+      .append('rect')
+      .attr('rx', 6)
+      .attr('ry', 6)
+      .attr('x', -8)
+      .attr('y', -12)
+      .attr('height', 24)
+      .attr('width', (d) => d.data.label.length * 14 + 20)
+      .attr('fill', (d) => {
+        const colors = ['#58a6ff', '#238636', '#8957e5', '#d29922'];
+        const isGarden = document.documentElement.classList.contains('garden');
+        const gardenColors = ['#5c7c55', '#7d9b76', '#a3b899', '#c4d4b8'];
+        return isGarden ? gardenColors[d.depth % gardenColors.length] : colors[d.depth % colors.length];
+      })
+      .attr('stroke', 'var(--border)')
+      .attr('stroke-width', 1);
+
+    nodes
+      .append('text')
+      .attr('dy', 4)
+      .attr('x', 6)
+      .attr('fill', '#fff')
+      .style('font-size', '12px')
+      .style('font-weight', '500')
+      .text((d) => d.data.label);
+  })();
+</script>
