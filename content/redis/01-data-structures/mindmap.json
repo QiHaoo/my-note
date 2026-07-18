@@ -1,0 +1,39 @@
+{
+  "title": "Redis 数据结构",
+  "subtitle": "String / Hash / List / Set / Sorted Set",
+  "root": {
+    "id": "root",
+    "label": "Redis 数据结构",
+    "noteRef": "/my-note/redis/01-data-structures/",
+    "collapsed": false,
+    "children": [
+      {
+        "id": "string",
+        "label": "String",
+        "noteRef": "/my-note/redis/01-data-structures/#string",
+        "collapsed": false,
+        "children": [
+          { "id": "sds", "label": "SDS 简单动态字符串" },
+          { "id": "use-case", "label": "使用场景：缓存、计数器" }
+        ]
+      },
+      {
+        "id": "hash",
+        "label": "Hash",
+        "noteRef": "/my-note/redis/01-data-structures/#hash",
+        "children": [
+          { "id": "hash-use", "label": "适合存储对象" }
+        ]
+      },
+      {
+        "id": "list",
+        "label": "List",
+        "children": [
+          { "id": "list-use", "label": "队列 / 栈" }
+        ]
+      }
+    ]
+  },
+  "layout": "right",
+  "theme": "tech"
+}

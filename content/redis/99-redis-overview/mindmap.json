@@ -1,0 +1,16 @@
+{
+  "title": "Redis 知识地图",
+  "subtitle": "数据结构 · 持久化 · 主从复制 · 集群",
+  "root": {
+    "id": "root",
+    "label": "Redis",
+    "collapsed": false,
+    "children": [
+      { "id": "data-structures", "label": "数据结构" },
+      { "id": "persistence", "label": "持久化" },
+      { "id": "replication", "label": "主从复制" }
+    ]
+  },
+  "layout": "right",
+  "theme": "tech"
+}
