@@ -10,6 +10,10 @@ const dataJson = JSON.stringify(data);
 ---
 
 <div class="relative mb-4">
+  <div class="absolute right-3 top-3 z-10 flex gap-2">
+    <button id="mm-reset" class="rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--text)] hover:border-[var(--accent)]">重置视图</button>
+    <button id="mm-toggle-mode" class="rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--text)] hover:border-[var(--accent)]">切换到 SVG</button>
+  </div>
   <div id="mindmap-canvas" class="h-[500px] w-full overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]" data-mindmap={dataJson}></div>
 </div>
 
@@ -100,5 +104,9 @@ const dataJson = JSON.stringify(data);
       .style('font-size', '12px')
       .style('font-weight', '500')
       .text((d) => d.data.label);
+
+    document.getElementById('mm-reset')?.addEventListener('click', () => {
+      svg.transition().duration(300).call(zoomBehavior.transform, zoomIdentity.translate(width * 0.15, height * 0.5).scale(1));
+    });
   })();
 </script>
