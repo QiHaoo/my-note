@@ -1,0 +1,49 @@
+---
+import '../styles/global.css';
+import { getSiteConfig } from '../lib/content';
+import Sidebar from '../components/Sidebar.astro';
+import ThemeToggle from '../components/ThemeToggle.astro';
+
+const config = getSiteConfig();
+const { title, description } = Astro.props;
+const pageTitle = title ? `${title} · ${config.title}` : config.title;
+const base = import.meta.env.BASE_URL || '';
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description || config.description} />
+    <title>{pageTitle}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <script is:inline>
+      (function () {
+        const theme = localStorage.getItem('theme');
+        const defaultTheme = 'dark';
+        document.documentElement.classList.add(theme || defaultTheme);
+      })();
+    </script>
+  </head>
+  <body class="min-h-screen">
+    <div class="flex min-h-screen flex-col md:flex-row">
+      <Sidebar />
+      <div class="flex flex-1 flex-col">
+        <header class="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-6 py-3 md:px-8">
+          <span class="text-sm text-[var(--text)] md:hidden">{config.title}</span>
+          <div class="flex-1"></div>
+          <ThemeToggle defaultTheme={config.defaultTheme} />
+        </header>
+        <main class="flex-1 p-6 md:p-10">
+          <slot />
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,40 @@
+---
+const { defaultTheme } = Astro.props;
+---
+
+<button
+  id="theme-toggle"
+  class="rounded-lg p-2 text-sm font-medium transition-colors hover:bg-[var(--surface)]"
+  aria-label="切换主题"
+  data-default={defaultTheme}
+>
+  <span class="dark-only">🌙</span>
+  <span class="garden-only">🌿</span>
+</button>
+
+<script>
+  (function () {
+    const toggle = document.getElementById('theme-toggle');
+    if (!toggle) return;
+
+    const defaultTheme = toggle.dataset.default || 'dark';
+    const stored = localStorage.getItem('theme');
+    const theme = stored || defaultTheme;
+    document.documentElement.classList.add(theme);
+
+    toggle.addEventListener('click', () => {
+      const isGarden = document.documentElement.classList.contains('garden');
+      const next = isGarden ? 'dark' : 'garden';
+      document.documentElement.classList.remove('dark', 'garden');
+      document.documentElement.classList.add(next);
+      localStorage.setItem('theme', next);
+    });
+  })();
+</script>
+
+<style>
+  html.dark .garden-only,
+  html.garden .dark-only {
+    display: none;
+  }
+</style>
