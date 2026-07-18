@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --border: #30363d;
+  --text: #c9d1d9;
+  --heading: #f0f6fc;
+  --accent: #58a6ff;
+}
+
+html.garden {
+  --bg: #f7f3e9;
+  --surface: #fffdf7;
+  --border: #e8e4d9;
+  --text: #3d3d3d;
+  --heading: #2f3e2f;
+  --accent: #5c7c55;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+a {
+  color: var(--accent);
+}
+
+h1, h2, h3, h4 {
+  color: var(--heading);
+}
