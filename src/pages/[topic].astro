@@ -1,0 +1,31 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ChapterCard from '../../components/ChapterCard.astro';
+import { getTopics } from '../../lib/content';
+
+export function getStaticPaths() {
+  const topics = getTopics();
+  return topics.map((topic) => ({ params: { topic: topic.slug }, props: { topic } }));
+}
+
+const { topic } = Astro.props;
+---
+
+<BaseLayout title={topic.meta.title} description={topic.meta.description}>
+  <div class="mx-auto max-w-4xl">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-[var(--heading)]">
+        {topic.meta.icon && <span class="mr-2">{topic.meta.icon}</span>}
+        {topic.meta.title}
+      </h1>
+      <p class="mt-2 text-[var(--text)]">{topic.meta.description}</p>
+    </div>
+
+    <h2 class="mb-4 text-xl font-semibold text-[var(--heading)]">章节</h2>
+    <div class="grid gap-4 sm:grid-cols-2">
+      {topic.chapters.map((chapter) => (
+        <ChapterCard chapter={chapter} topicSlug={topic.slug} />
+      ))}
+    </div>
+  </div>
+</BaseLayout>

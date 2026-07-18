@@ -1,0 +1,36 @@
+---
+import type { Chapter } from '../lib/types';
+
+interface Props {
+  chapter: Chapter;
+  topicSlug: string;
+}
+
+const { chapter, topicSlug } = Astro.props;
+const base = import.meta.env.BASE_URL || '';
+---
+
+<div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 transition-colors hover:border-[var(--accent)]">
+  <h3 class="text-base font-semibold text-[var(--heading)]">{chapter.title}</h3>
+  <div class="mt-2 flex flex-wrap gap-2 text-xs text-[var(--text)]">
+    {chapter.hasNote && <span>📝 笔记</span>}
+    {chapter.hasMindmap && <span>🧠 导图</span>}
+    {chapter.note?.frontmatter.status && (
+      <span class={`rounded px-1.5 py-0.5 ${chapter.note.frontmatter.status === 'mastered' ? 'bg-green-900 text-green-100' : chapter.note.frontmatter.status === 'learning' ? 'bg-blue-900 text-blue-100' : 'bg-gray-700 text-gray-100'}`}>
+        {chapter.note.frontmatter.status === 'learning' ? '学习中' : chapter.note.frontmatter.status === 'mastered' ? '已掌握' : chapter.note.frontmatter.status === 'reviewing' ? '复习中' : '未开始'}
+      </span>
+    )}
+  </div>
+  <div class="mt-4 flex gap-3">
+    {chapter.hasNote && (
+      <a href={`${base}/${topicSlug}/${chapter.slug}/`} class="text-sm font-medium hover:underline">
+        阅读笔记 →
+      </a>
+    )}
+    {chapter.hasMindmap && (
+      <a href={`${base}/${topicSlug}/${chapter.slug}/?view=mindmap`} class="text-sm font-medium hover:underline">
+        查看导图 →
+      </a>
+    )}
+  </div>
+</div>
