@@ -1,7 +1,7 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import ChapterCard from '../../components/ChapterCard.astro';
-import { getTopics } from '../../lib/content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ChapterCard from '../components/ChapterCard.astro';
+import { getTopics } from '../lib/content';
 
 export function getStaticPaths() {
   const topics = getTopics();
