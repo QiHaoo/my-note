@@ -1,11 +1,40 @@
 ---
 import { getTopics, getSiteConfig } from '../lib/content';
+import type { Chapter, TopicModule, Topic } from '../lib/types';
 
 const topics = getTopics();
 const currentTopic = Astro.params.topic as string | undefined;
 const currentChapter = Astro.params.chapter as string | undefined;
 const config = getSiteConfig();
 const base = import.meta.env.BASE_URL || '';
+
+function groupChaptersByModule(topic: Topic) {
+  const modules = topic.modules ?? [];
+  const moduleMap = new Map<string, { module: TopicModule; chapters: Chapter[] }>();
+  const ungrouped: Chapter[] = [];
+
+  for (const m of modules) {
+    moduleMap.set(m.id, { module: m, chapters: [] });
+  }
+
+  for (const chapter of topic.chapters) {
+    if (chapter.module && moduleMap.has(chapter.module)) {
+      moduleMap.get(chapter.module)!.chapters.push(chapter);
+    } else {
+      ungrouped.push(chapter);
+    }
+  }
+
+  const grouped = Array.from(moduleMap.values()).filter((g) => g.chapters.length > 0);
+  grouped.sort((a, b) => (a.module.order ?? 999) - (b.module.order ?? 999));
+
+  return { grouped, ungrouped };
+}
+
+const activeTopic = topics.find((t) => t.slug === currentTopic);
+const { grouped: groupedChapters, ungrouped: ungroupedChapters } = activeTopic
+  ? groupChaptersByModule(activeTopic)
+  : { grouped: [], ungrouped: [] };
 ---
 
 <aside
@@ -13,56 +42,107 @@ const base = import.meta.env.BASE_URL || '';
   class="fixed inset-y-0 left-0 z-40 w-72 -translate-x-full transform border-r border-[var(--border)] bg-[var(--surface)] transition-transform duration-200 md:static md:translate-x-0"
 >
   <div class="flex h-full flex-col p-4">
-    <a href={`${base}/`} class="mb-6 text-lg font-semibold text-[var(--heading)]">
-      {config.title}
-    </a>
+    <div class="mb-6">
+      <a href={`${base}/`} class="text-lg font-semibold text-[var(--heading)]">
+        {config.title}
+      </a>
+      <div class="mt-1 text-xs text-[var(--text)] opacity-70">学习笔记与思维导图</div>
+    </div>
 
-    <nav class="flex-1 space-y-2 overflow-y-auto" id="topic-accordion">
-      {topics.map((topic) => {
-        const isActive = currentTopic === topic.slug;
-        const chapterCount = topic.chapters.length;
-        return (
-          <div class="topic-group rounded-lg" data-topic={topic.slug} data-active={isActive}>
-            <button
-              type="button"
-              class="topic-header flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[var(--bg)]"
-              aria-expanded={isActive}
-            >
-              <span class={`text-sm font-medium ${isActive ? 'text-[var(--accent)]' : 'text-[var(--heading)]'}`}>
-                {topic.meta.icon && <span class="mr-2">{topic.meta.icon}</span>}
-                {topic.meta.title}
-                <span class="ml-1 text-xs text-[var(--text)] opacity-70">（{chapterCount}讲）</span>
-              </span>
-              <svg
-                class={`topic-chevron h-4 w-4 text-[var(--text)] transition-transform duration-200 ${isActive ? 'rotate-180' : ''}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
+    <nav class="flex-1 overflow-y-auto">
+      {activeTopic ? (
+        <div id="topic-accordion" class="space-y-2">
+          <div class="rounded-lg bg-[var(--bg)] px-3 py-3">
+            <div class="flex items-center gap-2 text-[var(--heading)]">
+              {activeTopic.meta.icon && <span class="text-xl">{activeTopic.meta.icon}</span>}
+              <span class="text-base font-semibold">{activeTopic.meta.title}</span>
+            </div>
+            {activeTopic.meta.description && (
+              <div class="mt-1 text-xs text-[var(--text)] opacity-80">{activeTopic.meta.description}</div>
+            )}
+          </div>
 
-            <ul class={`topic-chapters mt-1 space-y-0.5 overflow-hidden transition-all duration-200 ${isActive ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-              {topic.chapters.map((chapter) => {
-                const isCurrentChapter = isActive && currentChapter === chapter.slug;
+          {groupedChapters.map(({ module, chapters }) => {
+            const isExpanded = chapters.some((c) => c.slug === currentChapter);
+            return (
+              <div class="module-group rounded-lg" data-module={module.id}>
+                <button
+                  type="button"
+                  class="module-header flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[var(--bg)]"
+                  aria-expanded={isExpanded}
+                >
+                  <span class="text-sm font-medium text-[var(--heading)]">{module.title}</span>
+                  <svg
+                    class={`module-chevron h-4 w-4 text-[var(--text)] transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                <ul class={`module-chapters mt-1 space-y-0.5 overflow-hidden transition-all duration-200 ${isExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                  {chapters.map((chapter) => {
+                    const isCurrent = currentChapter === chapter.slug;
+                    const order = String(chapter.order).padStart(2, '0');
+                    return (
+                      <li>
+                        <a
+                          href={`${base}/${activeTopic.slug}/${chapter.slug}/`}
+                          class={`block rounded-md px-3 py-2 text-sm transition-colors ${isCurrent ? 'bg-[var(--bg)] text-[var(--accent)]' : 'text-[var(--text)] hover:bg-[var(--bg)] hover:text-[var(--heading)]'}`}
+                        >
+                          {order} | {chapter.title}
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
+
+          {ungroupedChapters.length > 0 && (
+            <ul class="mt-1 space-y-0.5">
+              {ungroupedChapters.map((chapter) => {
+                const isCurrent = currentChapter === chapter.slug;
                 const order = String(chapter.order).padStart(2, '0');
                 return (
                   <li>
                     <a
-                      href={`${base}/${topic.slug}/${chapter.slug}/`}
-                      class={`block rounded-md px-3 py-2 text-sm transition-colors ${isCurrentChapter ? 'bg-[var(--bg)] text-[var(--accent)]' : 'text-[var(--text)] hover:bg-[var(--bg)] hover:text-[var(--heading)]'}`}
+                      href={`${base}/${activeTopic!.slug}/${chapter.slug}/`}
+                      class={`block rounded-md px-3 py-2 text-sm transition-colors ${isCurrent ? 'bg-[var(--bg)] text-[var(--accent)]' : 'text-[var(--text)] hover:bg-[var(--bg)] hover:text-[var(--heading)]'}`}
                     >
-                      <span class="font-medium">{order} | {chapter.title}</span>
+                      {order} | {chapter.title}
                     </a>
                   </li>
                 );
               })}
             </ul>
-          </div>
-        );
-      })}
+          )}
+
+          <a
+            href={`${base}/`}
+            class="mt-4 block rounded-lg px-3 py-2 text-sm text-[var(--text)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--heading)]"
+          >
+            ← 返回所有主题
+          </a>
+        </div>
+      ) : (
+        <div class="space-y-2">
+          <div class="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--text)] opacity-70">学习主题</div>
+          {topics.map((topic) => (
+            <a
+              href={`${base}/${topic.slug}/`}
+              class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-[var(--heading)] transition-colors hover:bg-[var(--bg)]"
+            >
+              {topic.meta.icon && <span>{topic.meta.icon}</span>}
+              {topic.meta.title}
+            </a>
+          ))}
+        </div>
+      )}
     </nav>
   </div>
 </aside>
@@ -92,19 +172,19 @@ const base = import.meta.env.BASE_URL || '';
       }
     });
 
-    // Accordion behavior
+    // Module accordion behavior
     const accordion = document.getElementById('topic-accordion');
     if (!accordion) return;
 
     accordion.addEventListener('click', (e) => {
-      const header = e.target.closest('.topic-header');
+      const header = e.target.closest('.module-header');
       if (!header) return;
 
-      const group = header.closest('.topic-group');
+      const group = header.closest('.module-group');
       if (!group) return;
 
-      const chapters = group.querySelector('.topic-chapters');
-      const chevron = header.querySelector('.topic-chevron');
+      const chapters = group.querySelector('.module-chapters');
+      const chevron = header.querySelector('.module-chevron');
       const isExpanded = header.getAttribute('aria-expanded') === 'true';
 
       if (chapters) {

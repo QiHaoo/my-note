@@ -59,9 +59,37 @@ reviewable: true
     ]
   },
   "layout": "right",
-  "theme": "tech"
+  "theme": "tech",
+  "module": "basics"
 }
 ```
+
+## 二级分类（模块）配置
+
+主题的二级分类是**可选**的。如果需要，在主题的 `meta.json` 中声明模块：
+
+```json
+{
+  "title": "Redis",
+  "description": "...",
+  "order": 1,
+  "modules": [
+    { "id": "basics", "title": "基础篇", "order": 1 },
+    { "id": "advanced", "title": "进阶篇", "order": 2 }
+  ]
+}
+```
+
+然后在章节的 `note.md` 或 `mindmap.json` 中指定所属模块：
+
+```yaml
+---
+title: Redis 数据结构
+module: basics
+---
+```
+
+没有 `module` 字段的章节会直接显示在主题下方。
 
 ## 注意事项
 
@@ -69,3 +97,4 @@ reviewable: true
 - 节点 `id` 必须唯一
 - `collapsed` 控制默认折叠状态
 - 不要直接生成 HTML/CSS/JS
+- 每个新主题只需要复制 `content/redis/` 的目录结构，修改 `meta.json` 即可

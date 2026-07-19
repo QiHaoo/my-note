@@ -36,8 +36,9 @@ export function getTopics(): Topic[] {
 
     const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8')) as TopicMeta;
     const chapters = getChapters(topicSlug);
+    const modules = meta.modules ?? [];
 
-    topics.push({ slug: topicSlug, meta, chapters });
+    topics.push({ slug: topicSlug, meta, chapters, modules });
   }
 
   return topics.sort((a, b) => a.meta.order - b.meta.order);
@@ -85,6 +86,7 @@ export function getChapters(topicSlug: string): Chapter[] {
     }
 
     const title = note?.frontmatter.title ?? mindmap?.title ?? slug;
+    const moduleId = note?.frontmatter.module ?? mindmap?.module;
 
     chapters.push({
       id: `${topicSlug}/${slug}`,
@@ -92,6 +94,7 @@ export function getChapters(topicSlug: string): Chapter[] {
       title,
       order,
       topicSlug,
+      module: moduleId,
       note,
       mindmap,
       hasNote,

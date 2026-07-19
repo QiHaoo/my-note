@@ -12,6 +12,13 @@ export interface TopicMeta {
   order: number;
   icon?: string;
   tags?: string[];
+  modules?: TopicModule[];
+}
+
+export interface TopicModule {
+  id: string;
+  title: string;
+  order?: number;
 }
 
 export type LearningStatus = 'learning' | 'reviewing' | 'mastered' | 'not-started';
@@ -23,6 +30,7 @@ export interface NoteFrontmatter {
   status: LearningStatus;
   tags?: string[];
   reviewable?: boolean;
+  module?: string;
 }
 
 export interface MindmapNode {
@@ -39,6 +47,7 @@ export interface MindmapData {
   root: MindmapNode;
   layout?: 'right' | 'left' | 'radial';
   theme?: string;
+  module?: string;
   nodeStyle?: Record<string, { fill?: string; stroke?: string }>;
 }
 
@@ -48,6 +57,7 @@ export interface Chapter {
   title: string;
   order: number;
   topicSlug: string;
+  module?: string;
   note?: {
     rawContent: string;
     frontmatter: NoteFrontmatter;
@@ -62,4 +72,5 @@ export interface Topic {
   slug: string;
   meta: TopicMeta;
   chapters: Chapter[];
+  modules: TopicModule[];
 }

@@ -5,6 +5,7 @@ updated: 2026-07-15
 status: learning
 tags: [redis, cache, data-structure]
 reviewable: true
+module: basics
 ---
 
 Redis 支持多种数据结构，每种结构都有其特定的使用场景。

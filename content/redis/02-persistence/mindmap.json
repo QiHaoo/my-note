@@ -1,0 +1,33 @@
+{
+  "title": "Redis 持久化",
+  "subtitle": "RDB / AOF / 混合持久化",
+  "root": {
+    "id": "root",
+    "label": "Redis 持久化",
+    "noteRef": "/my-note/redis/02-persistence/",
+    "collapsed": false,
+    "children": [
+      {
+        "id": "rdb",
+        "label": "RDB",
+        "noteRef": "/my-note/redis/02-persistence/#rdb",
+        "children": [
+          { "id": "rdb-feature", "label": "快照持久化" },
+          { "id": "rdb-use", "label": "适合备份恢复" }
+        ]
+      },
+      {
+        "id": "aof",
+        "label": "AOF",
+        "noteRef": "/my-note/redis/02-persistence/#aof",
+        "children": [
+          { "id": "aof-feature", "label": "日志持久化" },
+          { "id": "aof-use", "label": "数据更安全" }
+        ]
+      }
+    ]
+  },
+  "layout": "right",
+  "theme": "tech",
+  "module": "basics"
+}

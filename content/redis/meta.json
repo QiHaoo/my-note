@@ -3,5 +3,9 @@
   "description": "Redis 高性能键值数据库学习笔记",
   "order": 1,
   "icon": "🚀",
-  "tags": ["database", "cache"]
+  "tags": ["database", "cache"],
+  "modules": [
+    { "id": "basics", "title": "基础篇", "order": 1 },
+    { "id": "advanced", "title": "进阶篇", "order": 2 }
+  ]
 }

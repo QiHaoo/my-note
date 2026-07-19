@@ -12,5 +12,6 @@
     ]
   },
   "layout": "right",
-  "theme": "tech"
+  "theme": "tech",
+  "module": "advanced"
 }
