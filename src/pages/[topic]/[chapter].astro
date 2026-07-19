@@ -1,10 +1,9 @@
 ---
-import { marked } from 'marked';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ViewToggle from '../../components/ViewToggle.astro';
 import MindmapViewer from '../../components/MindmapViewer.astro';
-import MindmapSVG from '../../components/MindmapSVG.astro';
 import { getTopics } from '../../lib/content';
+import { renderMarkdown } from '../../lib/markdown';
 
 export function getStaticPaths() {
   const topics = getTopics();
@@ -26,7 +25,12 @@ const base = import.meta.env.BASE_URL || '';
 const noteHref = `/${topic.slug}/${chapter.slug}/`;
 const mindmapHref = `/${topic.slug}/${chapter.slug}/?view=mindmap`;
 
-const noteHtml = chapter.note ? marked(chapter.note.rawContent, { gfm: true }) : '';
+const subLinks = chapter.subChapters.map((sc) => ({
+  title: sc.title,
+  url: `${base}/${topic.slug}/${chapter.slug}/${sc.slug}/`,
+}));
+const noteHtml = chapter.note ? await renderMarkdown(chapter.note.rawContent, subLinks) : '';
+const hasSubNotes = chapter.subChapters.length > 0;
 ---
 
 <BaseLayout title={chapter.title}>
@@ -52,17 +56,35 @@ const noteHtml = chapter.note ? marked(chapter.note.rawContent, { gfm: true }) :
     )}
 
     {chapter.note && (
-      <article
-        id="note-panel"
-        class="prose prose-invert max-w-none hidden prose-headings:text-[var(--heading)] prose-p:text-[var(--text)] prose-a:text-[var(--accent)] prose-code:text-[var(--accent)]"
-        set:html={noteHtml}
-      />
+      <div id="note-panel" class="hidden">
+        <article class="prose max-w-none" set:html={noteHtml} />
+
+        {hasSubNotes && (
+          <section class="subnotes-index mt-12 border-t border-[var(--border)] pt-8">
+            <h2 class="mb-1 text-xl font-semibold text-[var(--heading)]">本章节分笔记</h2>
+            <p class="mb-5 text-sm text-[var(--text)] opacity-80">深入阅读各专题细节</p>
+            <div class="grid gap-3 sm:grid-cols-2">
+              {chapter.subChapters.map((sc, idx) => {
+                const num = String(idx + 1).padStart(2, '0');
+                return (
+                  <a
+                    href={`${base}/${topic.slug}/${chapter.slug}/${sc.slug}/`}
+                    class="group flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 transition-all hover:-translate-y-0.5 hover:border-[var(--accent)]"
+                  >
+                    <span class="font-mono text-xs text-[var(--text)] opacity-60">{num}</span>
+                    <span class="font-medium text-[var(--heading)] group-hover:text-[var(--accent)]">{sc.title}</span>
+                  </a>
+                );
+              })}
+            </div>
+          </section>
+        )}
+      </div>
     )}
 
     {chapter.mindmap && (
       <div id="mindmap-panel" class="hidden">
         <MindmapViewer data={chapter.mindmap} />
-        <MindmapSVG data={chapter.mindmap} />
       </div>
     )}
   </div>

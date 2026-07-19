@@ -1,5 +1,7 @@
 .claude/
 .superpowers/
+.workbuddy/
+.playwright-cli/
 .worktrees/
 .screenshots/
 node_modules/

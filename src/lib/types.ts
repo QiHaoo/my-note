@@ -51,6 +51,20 @@ export interface MindmapData {
   nodeStyle?: Record<string, { fill?: string; stroke?: string }>;
 }
 
+export interface SubChapter {
+  id: string;
+  slug: string;
+  title: string;
+  topicSlug: string;
+  chapterSlug: string;
+  note?: {
+    rawContent: string;
+    frontmatter: NoteFrontmatter;
+    headings: Array<{ text: string; slug: string; depth: number }>;
+  };
+  hasNote: boolean;
+}
+
 export interface Chapter {
   id: string;
   slug: string;
@@ -64,6 +78,7 @@ export interface Chapter {
     headings: Array<{ text: string; slug: string; depth: number }>;
   };
   mindmap?: MindmapData;
+  subChapters: SubChapter[];
   hasNote: boolean;
   hasMindmap: boolean;
 }

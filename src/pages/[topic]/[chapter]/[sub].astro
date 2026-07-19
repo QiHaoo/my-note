@@ -1,0 +1,70 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getTopics } from '../../../lib/content';
+import { renderMarkdown } from '../../../lib/markdown';
+
+export function getStaticPaths() {
+  const topics = getTopics();
+  const paths: any[] = [];
+  for (const topic of topics) {
+    for (const chapter of topic.chapters) {
+      for (const sub of chapter.subChapters) {
+        paths.push({
+          params: { topic: topic.slug, chapter: chapter.slug, sub: sub.slug },
+          props: { topic, chapter, sub },
+        });
+      }
+    }
+  }
+  return paths;
+}
+
+const { topic, chapter, sub } = Astro.props;
+const base = import.meta.env.BASE_URL || '';
+
+const subLinks = chapter.subChapters.map((sc) => ({
+  title: sc.title,
+  url: `${base}/${topic.slug}/${chapter.slug}/${sc.slug}/`,
+}));
+const noteHtml = sub.note ? await renderMarkdown(sub.note.rawContent, subLinks) : '';
+const topicHref = `${base}/${topic.slug}/`;
+const chapterHref = `${base}/${topic.slug}/${chapter.slug}/`;
+---
+
+<BaseLayout title={sub.title}>
+  <div class="mx-auto max-w-5xl">
+    <!-- 面包屑 -->
+    <nav class="mb-6 flex items-center gap-2 text-sm text-[var(--text)]">
+      <a href={topicHref} class="hover:text-[var(--accent)]">{topic.meta.title}</a>
+      <span class="opacity-50">/</span>
+      <a href={chapterHref} class="hover:text-[var(--accent)]">{chapter.title}</a>
+      <span class="opacity-50">/</span>
+      <span class="text-[var(--heading)]">{sub.title}</span>
+    </nav>
+
+    <h1 class="mb-2 text-3xl font-bold text-[var(--heading)]">{sub.title}</h1>
+    {sub.note?.frontmatter.tags && (
+      <div class="mt-3 mb-6 flex flex-wrap gap-2">
+        {sub.note.frontmatter.tags.map((tag) => (
+          <span class="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs text-[var(--text)]">
+            #{tag}
+          </span>
+        ))}
+      </div>
+    )}
+
+    {sub.note && (
+      <article class="prose max-w-none" set:html={noteHtml} />
+    )}
+
+    <!-- 返回主笔记 -->
+    <div class="mt-12 border-t border-[var(--border)] pt-6">
+      <a
+        href={chapterHref}
+        class="inline-flex items-center gap-2 text-sm font-medium text-[var(--accent)] hover:underline"
+      >
+        ← 返回 {chapter.title}
+      </a>
+    </div>
+  </div>
+</BaseLayout>

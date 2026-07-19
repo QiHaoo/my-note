@@ -4,15 +4,25 @@ import matter from 'gray-matter';
 import { remark } from 'remark';
 import remarkParse from 'remark-parse';
 import { visit } from 'unist-util-visit';
+import GithubSlugger from 'github-slugger';
 import type {
   SiteConfig,
   TopicMeta,
   Chapter,
+  SubChapter,
   Topic,
   NoteFrontmatter,
   MindmapData,
 } from './types';
 import { orderFromDirname, slugFromDirname } from './utils';
+
+const slugger = new GithubSlugger();
+
+function extractText(node: any): string {
+  if (node.type === 'text') return node.value;
+  if (node.children) return node.children.map(extractText).join('');
+  return '';
+}
 
 const CONTENT_DIR = path.resolve(process.cwd(), 'content');
 
@@ -97,6 +107,7 @@ export function getChapters(topicSlug: string): Chapter[] {
       module: moduleId,
       note,
       mindmap,
+      subChapters: getSubChapters(chapterPath, topicSlug, slug),
       hasNote,
       hasMindmap,
     });
@@ -105,16 +116,57 @@ export function getChapters(topicSlug: string): Chapter[] {
   return chapters.sort((a, b) => a.order - b.order);
 }
 
+function getSubChapters(chapterPath: string, topicSlug: string, chapterSlug: string): SubChapter[] {
+  if (!fs.existsSync(chapterPath)) return [];
+
+  const entries = fs.readdirSync(chapterPath, { withFileTypes: true });
+  const subChapters: SubChapter[] = [];
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+
+    const dirname = entry.name;
+    const slug = slugFromDirname(dirname);
+    const order = orderFromDirname(dirname);
+    const subChapterPath = path.join(chapterPath, dirname);
+
+    const notePath = path.join(subChapterPath, 'note.md');
+    const hasNote = fs.existsSync(notePath);
+    if (!hasNote) continue;
+
+    const raw = fs.readFileSync(notePath, 'utf-8');
+    const parsed = matter(raw);
+    const frontmatter = parsed.data as NoteFrontmatter;
+    const headings = extractHeadings(parsed.content);
+
+    const title = frontmatter.title ?? slug;
+
+    subChapters.push({
+      id: `${topicSlug}/${chapterSlug}/${slug}`,
+      slug,
+      title,
+      topicSlug,
+      chapterSlug,
+      note: {
+        rawContent: parsed.content,
+        frontmatter,
+        headings,
+      },
+      hasNote,
+    });
+  }
+
+  return subChapters.sort((a, b) => a.order - b.order);
+}
+
 function extractHeadings(content: string): Array<{ text: string; slug: string; depth: number }> {
   const tree = remark().use(remarkParse).parse(content);
   const headings: Array<{ text: string; slug: string; depth: number }> = [];
 
+  slugger.reset();
   visit(tree, 'heading', (node: any) => {
-    const text = node.children
-      .filter((child: any) => child.type === 'text')
-      .map((child: any) => child.value)
-      .join('');
-    const slug = text.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9一-龥-]/g, '');
+    const text = extractText(node);
+    const slug = slugger.slug(text);
     headings.push({ text, slug, depth: node.depth });
   });
 
@@ -129,4 +181,14 @@ export function getChapterBySlug(topicSlug: string, chapterSlug: string): Chapte
   const topic = getTopicBySlug(topicSlug);
   if (!topic) return undefined;
   return topic.chapters.find((c) => c.slug === chapterSlug);
+}
+
+export function getSubChapterBySlug(
+  topicSlug: string,
+  chapterSlug: string,
+  subChapterSlug: string
+): SubChapter | undefined {
+  const chapter = getChapterBySlug(topicSlug, chapterSlug);
+  if (!chapter) return undefined;
+  return chapter.subChapters.find((sc) => sc.slug === subChapterSlug);
 }

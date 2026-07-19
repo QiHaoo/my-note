@@ -11,117 +11,214 @@ const dataJson = JSON.stringify(data);
 
 <div class="relative mb-4">
   <div class="absolute right-3 top-3 z-10 flex gap-2">
-    <button id="mm-reset" class="rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--text)] hover:border-[var(--accent)]">重置视图</button>
-    <button id="mm-toggle-mode" class="rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--text)] hover:border-[var(--accent)]">切换到 SVG</button>
+    <button id="mm-reset" class="mm-btn rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--text)] hover:border-[var(--accent)]">重置视图</button>
   </div>
-  <div id="mindmap-canvas" class="h-[500px] w-full overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]" data-mindmap={dataJson}></div>
+  <div id="mindmap-canvas" class="mindmap-canvas h-[720px] w-full overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]" data-mindmap={dataJson}></div>
 </div>
 
 <script>
-  import { hierarchy, tree, zoom, select, linkHorizontal, zoomIdentity } from 'd3';
+  import { Graph, treeToGraphData } from '@antv/g6';
 
+  // ═══════════════════════════════════════════
+  // 分支配色 —— 每条主分支独立色系
+  // ═══════════════════════════════════════════
+  const BRANCH_PALETTES = [
+    { fill: '#e8f4fd', stroke: '#5b9bd5', text: '#2b6cb0', link: '#5b9bd5' },   // 蓝
+    { fill: '#e6f7ed', stroke: '#70ad47', text: '#38a169', link: '#70ad47' },   // 绿
+    { fill: '#f0f0f0', stroke: '#808080', text: '#4a5568', link: '#909090' },   // 灰
+    { fill: '#fce4ec', stroke: '#e06c75', text: '#c0392b', link: '#e06c75' },   // 粉红
+    { fill: '#fff3e0', stroke: '#f09030', text: '#d97706', link: '#f09030' },   // 橙
+    { fill: '#f3e8ff', stroke: '#9333ea', text: '#7e22ce', link: '#9333ea' },   // 紫
+    { fill: '#fef2f2', stroke: '#dc2626', text: '#b91c1c', link: '#dc2626' },   // 红
+    { fill: '#ecfeff', stroke: '#0891b2', text: '#155e75', link: '#0891b2' },   // 青
+  ];
+
+  const ROOT_STYLE = { fill: 'rgba(99,102,241,0.16)', stroke: '#818cf8', text: '#f1f5f9' };
+
+  // ═══════════════════════════════════════════
+  // 节点尺寸（按层级）
+  // ═══════════════════════════════════════════
+  function charWidth(label, fontSize) {
+    // 中文字符约等于字号宽，英文/数字约 0.6 倍
+    let w = 0;
+    for (const ch of label) {
+      w += /[\u4e00-\u9fa5]/.test(ch) ? fontSize : fontSize * 0.6;
+    }
+    return w;
+  }
+
+  function dims(depth, label, isLeaf) {
+    const text = label || '';
+    if (depth === 0) {
+      const fs = 19;
+      return { w: Math.max(charWidth(text, fs) + 44, 96), h: 46, fontSize: fs };
+    }
+    if (depth === 1) {
+      const fs = 14;
+      return { w: Math.max(charWidth(text, fs) + 30, 64), h: 36, fontSize: fs };
+    }
+    const fs = 13;
+    return { w: Math.max(charWidth(text, fs) + (isLeaf ? 14 : 22), 40), h: isLeaf ? 28 : 30, fontSize: fs };
+  }
+
+  // ═══════════════════════════════════════════
+  // 把我们的 root 树转成 G6 树数据（业务字段放 data，避免与 G6 的 type 冲突）
+  // ═══════════════════════════════════════════
+  function toG6Tree(root) {
+    let counter = 0;
+    function walk(node, depth, branchIdx) {
+      const id = 'mm-' + counter++;
+      const rawChildren = Array.isArray(node.children) ? node.children : [];
+      const isLeaf = rawChildren.length === 0;
+      const d = dims(depth, node.label, isLeaf);
+      const children = rawChildren.map((c, i) =>
+        walk(c, depth + 1, depth === 0 ? i : branchIdx)
+      );
+      return {
+        id,
+        depth,
+        data: {
+          label: node.label || '',
+          branchIdx,
+          isLeaf,
+          w: d.w,
+          h: d.h,
+          fontSize: d.fontSize,
+        },
+        children,
+      };
+    }
+    return walk(root, 0, -1);
+  }
+
+  function paletteOf(branchIdx) {
+    if (branchIdx < 0) return null;
+    return BRANCH_PALETTES[branchIdx % BRANCH_PALETTES.length];
+  }
+
+  // ═══════════════════════════════════════════
+  // 等容器出现有效尺寸再初始化（mindmap-panel 初始可能 hidden）
+  // ═══════════════════════════════════════════
+  function waitForSize(el, cb, tries = 30) {
+    const w = el.clientWidth;
+    const h = el.clientHeight;
+    if (w > 0 && h > 0) { cb(w, h); return; }
+    if (tries <= 0) return;
+    requestAnimationFrame(() => waitForSize(el, cb, tries - 1));
+  }
+
+  // ═══════════════════════════════════════════
+  // 主渲染
+  // ═══════════════════════════════════════════
   (function () {
     const container = document.getElementById('mindmap-canvas');
     if (!container) return;
 
-    const data = JSON.parse(container.dataset.mindmap || '{}');
-    if (!data.root) return;
+    const raw = JSON.parse(container.dataset.mindmap || '{}');
+    if (!raw.root) return;
 
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    waitForSize(container, (width, height) => {
+      const tree = toG6Tree(raw.root);
+      const graphData = treeToGraphData(tree);
 
-    const svg = select(container)
-      .append('svg')
-      .attr('width', width)
-      .attr('height', height)
-      .attr('viewBox', [0, 0, width, height]);
-
-    const g = svg.append('g');
-
-    const zoomBehavior = zoom()
-      .scaleExtent([0.3, 3])
-      .on('zoom', (event) => {
-        g.attr('transform', event.transform);
+      // 给每条边预设分支色（cubic-horizontal 曲线）
+      const nodeById = new Map(graphData.nodes.map((n) => [n.id, n]));
+      graphData.edges.forEach((e) => {
+        const t = nodeById.get(e.target);
+        const idx = t?.data?.branchIdx ?? -1;
+        const pal = paletteOf(idx);
+        const isTop = (t?.depth ?? 9) <= 1;
+        e.style = {
+          stroke: pal ? pal.link : '#94a3b8',
+          lineWidth: isTop ? 3 : 2,
+          strokeOpacity: isTop ? 0.9 : 0.7,
+          endArrow: false,
+        };
       });
 
-    svg.call(zoomBehavior);
-
-    const root = hierarchy(data.root, (d) => d.children);
-    const treeLayout = tree().nodeSize([50, 200]);
-    treeLayout(root);
-
-    const linkGen = linkHorizontal()
-      .x((d) => d.y)
-      .y((d) => d.x);
-
-    g.selectAll('path.link')
-      .data(root.links())
-      .enter()
-      .append('path')
-      .attr('class', 'link')
-      .attr('fill', 'none')
-      .attr('stroke', 'var(--text)')
-      .attr('stroke-opacity', 0.3)
-      .attr('stroke-width', 1.5)
-      .attr('d', (d) => linkGen(d));
-
-    const nodes = g
-      .selectAll('g.node')
-      .data(root.descendants())
-      .enter()
-      .append('g')
-      .attr('class', 'node')
-      .attr('transform', (d) => `translate(${d.y},${d.x})`)
-      .style('cursor', 'pointer')
-      .on('click', (_event, d) => {
-        if (d.data.noteRef) {
-          window.location.href = d.data.noteRef;
-        }
+      const graph = new Graph({
+        container,
+        width,
+        height,
+        autoResize: true,
+        data: graphData,
+        layout: {
+          type: 'mindmap',
+          direction: 'H',
+          getHeight: (d) => (d?.data?.h ?? 30),
+          getWidth: (d) => (d?.data?.w ?? 80),
+          getVGap: () => 10,
+          getHGap: () => 40,
+          animation: false,
+        },
+        node: {
+          type: 'rect',
+          style: (d) => {
+            const depth = d.depth ?? d.data?.depth ?? 2;
+            const info = d.data || {};
+            const size = [info.w || 80, info.h || 30];
+            const base = {
+              size,
+              radius: depth === 0 ? 10 : depth === 1 ? 7 : 5,
+              labelText: info.label,
+              labelPlacement: 'center',
+              labelFontSize: info.fontSize || 12,
+              labelFontFamily: 'inherit',
+            };
+            if (depth === 0) {
+              return {
+                ...base,
+                fill: ROOT_STYLE.fill,
+                stroke: ROOT_STYLE.stroke,
+                lineWidth: 2,
+                labelFill: ROOT_STYLE.text,
+                labelFontWeight: 700,
+              };
+            }
+            const pal = paletteOf(info.branchIdx) || BRANCH_PALETTES[0];
+            if (info.isLeaf) {
+              // 叶子：纯文字，无背景无边框
+              return {
+                ...base,
+                fill: 'transparent',
+                stroke: 'transparent',
+                lineWidth: 0,
+                labelFill: pal.text,
+                labelFontWeight: 500,
+              };
+            }
+            // 分支/子分支：彩色圆角卡片
+            return {
+              ...base,
+              fill: pal.fill,
+              stroke: pal.stroke,
+              lineWidth: depth === 1 ? 1.8 : 1.3,
+              labelFill: pal.text,
+              labelFontWeight: depth === 1 ? 600 : 500,
+              shadowColor: 'rgba(0,0,0,0.10)',
+              shadowBlur: 4,
+              shadowOffsetY: 1,
+            };
+          },
+        },
+        edge: {
+          type: 'cubic-horizontal',
+        },
+        behaviors: [
+          'drag-canvas',
+          'zoom-canvas',
+          { type: 'collapse-expand', trigger: 'dblclick' },
+        ],
+        animation: false,
       });
 
-    nodes
-      .append('rect')
-      .attr('rx', 6)
-      .attr('ry', 6)
-      .attr('x', -8)
-      .attr('y', -12)
-      .attr('height', 24)
-      .attr('width', (d) => d.data.label.length * 14 + 20)
-      .attr('fill', (d) => {
-        const colors = ['#58a6ff', '#238636', '#8957e5', '#d29922'];
-        const isGarden = document.documentElement.classList.contains('garden');
-        const gardenColors = ['#5c7c55', '#7d9b76', '#a3b899', '#c4d4b8'];
-        return isGarden ? gardenColors[d.depth % gardenColors.length] : colors[d.depth % colors.length];
-      })
-      .attr('stroke', 'var(--border)')
-      .attr('stroke-width', 1);
+      graph.render().then(() => {
+        try { graph.fitView({ when: 'always', direction: 'both', padding: [30, 80, 30, 50] }, false); } catch (_e) { /* noop */ }
+      });
 
-    nodes
-      .append('text')
-      .attr('dy', 4)
-      .attr('x', 6)
-      .attr('fill', '#fff')
-      .style('font-size', '12px')
-      .style('font-weight', '500')
-      .text((d) => d.data.label);
-
-    function fitToScreen() {
-      const bounds = g.node()?.getBBox();
-      if (!bounds) return;
-      const padding = 40;
-      const fullWidth = bounds.width + padding * 2;
-      const fullHeight = bounds.height + padding * 2;
-      const scale = Math.min(width / fullWidth, height / fullHeight, 1);
-      const translateX = (width - fullWidth * scale) / 2 - (bounds.x - padding) * scale;
-      const translateY = (height - fullHeight * scale) / 2 - (bounds.y - padding) * scale;
-      const transform = zoomIdentity.translate(translateX, translateY).scale(scale);
-      svg.transition().duration(300).call(zoomBehavior.transform, transform);
-    }
-
-    fitToScreen();
-
-    document.getElementById('mm-reset')?.addEventListener('click', () => {
-      fitToScreen();
+      document.getElementById('mm-reset')?.addEventListener('click', () => {
+        try { graph.fitView({ when: 'always', direction: 'both', padding: [30, 80, 30, 50] }); } catch (_e) { /* noop */ }
+      });
     });
   })();
 </script>

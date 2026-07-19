@@ -10,13 +10,24 @@
     "test:visual": "tsx scripts/visual-regression.ts"
   },
   "dependencies": {
+    "@antv/g6": "^5.1.1",
     "@astrojs/tailwind": "^6.0.2",
+    "@tailwindcss/typography": "^0.5.20",
     "astro": "^5.0.0",
     "d3": "^7.9.0",
     "gray-matter": "^4.0.3",
     "marked": "^18.0.6",
+    "rehype-autolink-headings": "^7.1.0",
+    "rehype-pretty-code": "^0.14.4",
+    "rehype-raw": "^7.0.0",
+    "rehype-slug": "^6.0.0",
+    "rehype-stringify": "^10.0.1",
     "remark": "^15.0.1",
+    "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "shiki": "^4.3.1",
+    "unified": "^11.0.5",
     "unist-util-visit": "^5.1.0"
   },
   "devDependencies": {

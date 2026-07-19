@@ -1,0 +1,27 @@
+{
+  "title": "Kubernetes",
+  "description": "",
+  "order": 99,
+  "modules": [
+    {
+      "id": "container-basics",
+      "title": "容器篇",
+      "order": 1
+    },
+    {
+      "id": "kubernetes-core",
+      "title": "Kubernetes 篇",
+      "order": 2
+    },
+    {
+      "id": "extras",
+      "title": "加餐",
+      "order": 3
+    },
+    {
+      "id": "closing",
+      "title": "结束语",
+      "order": 4
+    }
+  ]
+}
