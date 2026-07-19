@@ -7,8 +7,6 @@ tags: [redis, cache, data-structure]
 reviewable: true
 ---
 
-# Redis 数据结构
-
 Redis 支持多种数据结构，每种结构都有其特定的使用场景。
 
 ## String

@@ -21,9 +21,6 @@ export function getStaticPaths() {
 }
 
 const { topic, chapter } = Astro.props;
-const searchParams = new URL(Astro.request.url).searchParams;
-const defaultView = chapter.hasNote ? 'note' : 'mindmap';
-const view = searchParams.get('view') === 'mindmap' ? 'mindmap' : defaultView;
 const base = import.meta.env.BASE_URL || '';
 
 const noteHref = `/${topic.slug}/${chapter.slug}/`;
@@ -51,20 +48,39 @@ const noteHtml = chapter.note ? marked(chapter.note.rawContent, { gfm: true }) :
     </div>
 
     {chapter.hasNote && chapter.hasMindmap && (
-      <ViewToggle activeView={view} noteHref={noteHref} mindmapHref={mindmapHref} />
+      <ViewToggle noteHref={noteHref} mindmapHref={mindmapHref} />
     )}
 
-    {view === 'note' && chapter.note && (
-      <article class="prose prose-invert max-w-none prose-headings:text-[var(--heading)] prose-p:text-[var(--text)] prose-a:text-[var(--accent)] prose-code:text-[var(--accent)]"
+    {chapter.note && (
+      <article
+        id="note-panel"
+        class="prose prose-invert max-w-none hidden prose-headings:text-[var(--heading)] prose-p:text-[var(--text)] prose-a:text-[var(--accent)] prose-code:text-[var(--accent)]"
         set:html={noteHtml}
       />
     )}
 
-    {view === 'mindmap' && chapter.mindmap && (
-      <div>
+    {chapter.mindmap && (
+      <div id="mindmap-panel" class="hidden">
         <MindmapViewer data={chapter.mindmap} />
         <MindmapSVG data={chapter.mindmap} />
       </div>
     )}
   </div>
+
+  <script is:inline>
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const notePanel = document.getElementById('note-panel');
+      const mindmapPanel = document.getElementById('mindmap-panel');
+      const defaultView = notePanel ? 'note' : 'mindmap';
+      const view = params.get('view') === 'mindmap' ? 'mindmap' : defaultView;
+
+      if (view === 'note' && notePanel) {
+        notePanel.classList.remove('hidden');
+      }
+      if (view === 'mindmap' && mindmapPanel) {
+        mindmapPanel.classList.remove('hidden');
+      }
+    })();
+  </script>
 </BaseLayout>

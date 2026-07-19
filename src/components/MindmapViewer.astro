@@ -36,7 +36,7 @@ const dataJson = JSON.stringify(data);
       .attr('height', height)
       .attr('viewBox', [0, 0, width, height]);
 
-    const g = svg.append('g').attr('transform', `translate(${width * 0.15},${height * 0.5})`);
+    const g = svg.append('g');
 
     const zoomBehavior = zoom()
       .scaleExtent([0.3, 3])
@@ -47,7 +47,7 @@ const dataJson = JSON.stringify(data);
     svg.call(zoomBehavior);
 
     const root = hierarchy(data.root, (d) => d.children);
-    const treeLayout = tree().size([height * 0.8, width * 0.65]);
+    const treeLayout = tree().nodeSize([50, 200]);
     treeLayout(root);
 
     const linkGen = linkHorizontal()
@@ -105,8 +105,23 @@ const dataJson = JSON.stringify(data);
       .style('font-weight', '500')
       .text((d) => d.data.label);
 
+    function fitToScreen() {
+      const bounds = g.node()?.getBBox();
+      if (!bounds) return;
+      const padding = 40;
+      const fullWidth = bounds.width + padding * 2;
+      const fullHeight = bounds.height + padding * 2;
+      const scale = Math.min(width / fullWidth, height / fullHeight, 1);
+      const translateX = (width - fullWidth * scale) / 2 - (bounds.x - padding) * scale;
+      const translateY = (height - fullHeight * scale) / 2 - (bounds.y - padding) * scale;
+      const transform = zoomIdentity.translate(translateX, translateY).scale(scale);
+      svg.transition().duration(300).call(zoomBehavior.transform, transform);
+    }
+
+    fitToScreen();
+
     document.getElementById('mm-reset')?.addEventListener('click', () => {
-      svg.transition().duration(300).call(zoomBehavior.transform, zoomIdentity.translate(width * 0.15, height * 0.5).scale(1));
+      fitToScreen();
     });
   })();
 </script>

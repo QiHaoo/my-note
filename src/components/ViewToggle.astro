@@ -1,25 +1,46 @@
 ---
 interface Props {
-  activeView: 'note' | 'mindmap';
   noteHref: string;
   mindmapHref: string;
 }
 
-const { activeView, noteHref, mindmapHref } = Astro.props;
+const { noteHref, mindmapHref } = Astro.props;
 const base = import.meta.env.BASE_URL || '';
 ---
 
-<div class="mb-6 inline-flex rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1">
+<div id="view-toggle" class="mb-6 inline-flex rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1">
   <a
     href={`${base}${noteHref}`}
-    class={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${activeView === 'note' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text)] hover:text-[var(--heading)]'}`}
+    data-view="note"
+    class="view-tab rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
   >
     笔记
   </a>
   <a
     href={`${base}${mindmapHref}`}
-    class={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${activeView === 'mindmap' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text)] hover:text-[var(--heading)]'}`}
+    data-view="mindmap"
+    class="view-tab rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
   >
     思维导图
   </a>
 </div>
+
+<script>
+  (function () {
+    const toggle = document.getElementById('view-toggle');
+    if (!toggle) return;
+    const tabs = toggle.querySelectorAll('.view-tab');
+    const params = new URLSearchParams(window.location.search);
+    const notePanel = document.getElementById('note-panel');
+    const defaultView = notePanel ? 'note' : 'mindmap';
+    const view = params.get('view') === 'mindmap' ? 'mindmap' : defaultView;
+
+    tabs.forEach((tab) => {
+      if (tab.dataset.view === view) {
+        tab.classList.add('bg-[var(--accent)]', 'text-white');
+      } else {
+        tab.classList.add('text-[var(--text)]', 'hover:text-[var(--heading)]');
+      }
+    });
+  })();
+</script>

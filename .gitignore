@@ -1,6 +1,7 @@
 .claude/
 .superpowers/
 .worktrees/
+.screenshots/
 node_modules/
 dist/
 .astro/
